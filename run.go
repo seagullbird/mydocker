@@ -6,6 +6,7 @@ import (
 	"os"
 	"github.com/seagullbird/mydocker/cgroups/subsystems"
 	"strings"
+	"github.com/seagullbird/mydocker/cgroups"
 )
 
 func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig) {
@@ -18,6 +19,13 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig) {
 	if err := parent.Start(); err != nil {
 		log.Error(err)
 	}
+	cgroupManager := cgroups.NewCgroupManager("mydocker-cgroup")
+	defer cgroupManager.Destroy()
+	// Set resources limitation
+	cgroupManager.Set(res)
+	// Add container process into each cgroup
+	cgroupManager.Apply(parent.Process.Pid)
+	// initialize the container
 	sendInitCommand(cmdArray, writePipe)
 	parent.Wait()
 	os.Exit(0)

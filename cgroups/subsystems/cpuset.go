@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 	"os"
+	log "github.com/Sirupsen/logrus"
 )
 
 type CpusetSubSystem struct {
@@ -17,7 +18,8 @@ func (s *CpusetSubSystem) Name() string {
 
 func (s *CpusetSubSystem) Set(cgroupPath string, res *ResourceConfig) error {
 	if subsysCgroupPath, err := GetCgroupPath(s.Name(), cgroupPath, true); err == nil {
-		if res.MemoryLimit != "" {
+		if res.CpuSet != "" {
+			log.Infof("Setting cpuset limit: %v", res.CpuSet)
 			// write memory limit into memory.limit_in_bytes
 			if err := ioutil.WriteFile(path.Join(subsysCgroupPath, "cpuset.cpus"), []byte(res.CpuSet), 0644); err != nil {
 				return fmt.Errorf("set cgroup cpuset fail %v", err)
