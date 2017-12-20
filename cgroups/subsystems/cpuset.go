@@ -20,7 +20,7 @@ func (s *CpusetSubSystem) Set(cgroupPath string, res *ResourceConfig) error {
 	if subsysCgroupPath, err := GetCgroupPath(s.Name(), cgroupPath, true); err == nil {
 		if res.CpuSet != "" {
 			log.Infof("Setting cpuset limit: %v", res.CpuSet)
-			// write memory limit into memory.limit_in_bytes
+			// write cpuset limit into cpuset.cpus
 			if err := ioutil.WriteFile(path.Join(subsysCgroupPath, "cpuset.cpus"), []byte(res.CpuSet), 0644); err != nil {
 				return fmt.Errorf("set cgroup cpuset fail %v", err)
 			}
