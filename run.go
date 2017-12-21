@@ -28,6 +28,9 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig) {
 	// initialize the container
 	sendInitCommand(cmdArray, writePipe)
 	parent.Wait()
+	homeDir := "/root/mydocker_images/"
+	mntDir := homeDir + "mnt/"
+	container.DeleteWorkSpace(homeDir, mntDir)
 	os.Exit(0)
 }
 
