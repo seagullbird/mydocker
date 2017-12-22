@@ -33,10 +33,23 @@ var runCommand = cli.Command{
 			Name:	"v",
 			Usage:	"volume",
 		},
+		cli.BoolFlag{
+			Name:	"d",
+			Usage:	"detach container",
+		},
+		cli.StringFlag{
+			Name:	"name",
+			Usage:	"container name",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
 			return fmt.Errorf("Missing container command")
+		}
+		tty := context.Bool("it")
+		detach := context.Bool("d")
+		if tty && detach {
+			return fmt.Errorf("-it and -d parameter can not both exist.")
 		}
 		var cmdArray []string
 		for _, arg := range context.Args() {
@@ -47,9 +60,9 @@ var runCommand = cli.Command{
 			CpuSet:			context.String("cpuset"),
 			CpuShare:		context.String("cpushare"),
 		}
-		tty := context.Bool("it")
 		volume := context.String("v")
-		Run(tty, cmdArray, resConf, volume)
+		containerName := context.String("name")
+		Run(tty, cmdArray, resConf, volume, containerName)
 		return nil
 	},
 }
@@ -74,6 +87,15 @@ var commitCommand = cli.Command{
 		imageName := context.Args().Get(0)
 		//commitContainer(containerName)
 		commitContainer(imageName)
+		return nil
+	},
+}
+
+var listCommand = cli.Command{
+	Name: "ps",
+	Usage: "list all the containers",
+	Action: func(context *cli.Context) error {
+		ListContainers()
 		return nil
 	},
 }
