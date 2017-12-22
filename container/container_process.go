@@ -5,9 +5,11 @@ import (
 	"os/exec"
 	"os"
 	log "github.com/Sirupsen/logrus"
+	"strings"
+	"path/filepath"
 )
 
-func NewParentProcess (tty bool) (*exec.Cmd, *os.File) {
+func NewParentProcess (tty bool, volume string) (*exec.Cmd, *os.File) {
 	readPipe, writePipe, err := NewPipe()
 	if err != nil {
 		log.Errorf("New pipe error %v", err)
@@ -27,7 +29,7 @@ func NewParentProcess (tty bool) (*exec.Cmd, *os.File) {
 	homeDir := "/root/mydocker_images/"
 	mntDir := homeDir + "mnt/"
 	cmd.Dir = mntDir
-	NewWorkSpace(homeDir, mntDir)
+	NewWorkSpace(homeDir, mntDir, volume)
 	cmd.ExtraFiles = []*os.File{readPipe}
 	return cmd, writePipe
 }
@@ -42,12 +44,22 @@ func NewPipe() (*os.File, *os.File, error) {
 }
 
 //Create an Overlay filesystem as container root workspace
-func NewWorkSpace(homeDir string, mntDir string) {
+func NewWorkSpace(homeDir string, mntDir string, volume string) {
 	lowerDir := CreateReadOnlyLayer(homeDir)
 	upperDir := CreateWriteLayer(homeDir)
 	// For overlayFS
 	workDir := CreateWorkdir(homeDir)
 	CreateMountPoint(lowerDir, upperDir, workDir, mntDir)
+	if volume != "" {
+		volumeDirs := volumeDirExtract(volume)
+		length := len(volumeDirs)
+		if length == 2 && volumeDirs[0] != "" && volumeDirs[1] != "" {
+			MountVolume(homeDir, mntDir, volumeDirs)
+			log.Infof("%q", volumeDirs)
+		} else {
+			log.Infof("Volume parameter input is not correct.")
+		}
+	}
 }
 
 func CreateReadOnlyLayer(homeDir string) string {
@@ -98,7 +110,14 @@ func CreateMountPoint(lowerDir string, upperDir string, workDir string, mntDir s
 	}
 }
 
-func DeleteWorkSpace(homeDir string, mntDir string) {
+func DeleteWorkSpace(homeDir string, mntDir string, volume string) {
+	if volume != "" {
+		volumeDirs := volumeDirExtract(volume)
+		length := len(volumeDirs)
+		if length == 2 && volumeDirs[0] != "" && volumeDirs[1] != "" {
+			UmountVolume(homeDir, mntDir, volumeDirs)
+		}
+	}
 	DeleteMountPoint(homeDir, mntDir)
 	DeleteWriteLayer(homeDir)
 	DeleteWorkDir(homeDir)
@@ -139,4 +158,50 @@ func PathExists(path string) (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+func volumeDirExtract(volume string) ([]string) {
+	var volumeDirs []string
+	volumeDirs = strings.Split(volume, ":")
+	return volumeDirs
+}
+
+func MountVolume(homeDir string, mntDir string, volumeDirs []string) {
+	// Create host directory
+	hostDir := volumeDirs[0]
+	volumeLowerDir := filepath.Join(hostDir, "lowerdir")
+	volumeUpperDir := filepath.Join(hostDir, "volume")
+	volumeWorkDir := filepath.Join(hostDir, "workdir")
+	if err := os.Mkdir(hostDir, 0777); err != nil {
+		log.Infof("Mkdir host dir %s error: %v", hostDir, err)
+	}
+	if err := os.Mkdir(volumeLowerDir, 0777); err != nil {
+		log.Infof("Mkdir host dir %s error: %v", volumeLowerDir, err)
+	}
+	if err := os.Mkdir(volumeUpperDir, 0777); err != nil {
+		log.Infof("Mkdir host dir %s error: %v", volumeUpperDir, err)
+	}
+	if err := os.Mkdir(volumeWorkDir, 0777); err != nil {
+		log.Infof("Mkdir host dir %s error: %v", volumeWorkDir, err)
+	}
+	// Create mount point inside container
+	containerDir := volumeDirs[1]
+	containerVolumeDir := mntDir + strings.Trim(containerDir, "/")
+	if err := os.Mkdir(containerVolumeDir, 0777); err != nil {
+		log.Infof("Mkdir container dir %s error: %v", containerVolumeDir, err)
+	}
+	dirs := "lowerdir=" + volumeLowerDir + "," + "upperdir=" + volumeUpperDir + "," + "workdir=" + volumeWorkDir
+	cmd := exec.Command("mount", "-t", "overlay", "-o", dirs, "none", containerVolumeDir)
+	if err := cmd.Run(); err != nil {
+		log.Errorf("Mount volume failed error: %v", err)
+	}
+}
+
+func UmountVolume(homeDir string, mntDir string, volumeDirs []string) {
+	containerDir := volumeDirs[1]
+	containerVolumeDir := mntDir + containerDir
+	cmd := exec.Command("umount", containerVolumeDir)
+	if err := cmd.Run(); err != nil {
+		log.Errorf("Umount volume failed error: %v", err)
+	}
 }

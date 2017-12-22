@@ -9,8 +9,8 @@ import (
 	"github.com/seagullbird/mydocker/cgroups"
 )
 
-func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig) {
-	parent, writePipe := container.NewParentProcess(tty)
+func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume string) {
+	parent, writePipe := container.NewParentProcess(tty, volume)
 	if parent == nil {
 		log.Errorf("New parent process error")
 		return
@@ -30,7 +30,7 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig) {
 	parent.Wait()
 	homeDir := "/root/mydocker_images/"
 	mntDir := homeDir + "mnt/"
-	container.DeleteWorkSpace(homeDir, mntDir)
+	container.DeleteWorkSpace(homeDir, mntDir, volume)
 	os.Exit(0)
 }
 
