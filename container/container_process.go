@@ -7,6 +7,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"strings"
 	"path/filepath"
+	"fmt"
 )
 
 type ContainerInfo struct {
@@ -24,9 +25,10 @@ var (
 	Exit 				string = "exited"
 	DefaultInfoLocation string = "/var/run/mydocker/%s/"
 	ConfigName			string = "config.json"
+	ContainerLogFile	string = "container.log"
 )
 
-func NewParentProcess (tty bool, volume string) (*exec.Cmd, *os.File) {
+func NewParentProcess (tty bool, volume string, containerName string) (*exec.Cmd, *os.File) {
 	readPipe, writePipe, err := NewPipe()
 	if err != nil {
 		log.Errorf("New pipe error %v", err)
@@ -42,6 +44,19 @@ func NewParentProcess (tty bool, volume string) (*exec.Cmd, *os.File) {
 		cmd.Stdout = os.Stdout
 		cmd.Stdin = os.Stdin
 		cmd.Stderr = os.Stderr
+	} else {
+		containerInfoDir := fmt.Sprintf(DefaultInfoLocation, containerName)
+		if err := os.MkdirAll(containerInfoDir, 0622); err != nil {
+			log.Errorf("NewParentProcess mkdir %s error: %v", containerInfoDir, err)
+			return nil, nil
+		}
+		stdLogFilePath := filepath.Join(containerInfoDir, ContainerLogFile)
+		stdLogFile, err := os.Create(stdLogFilePath)
+		if err != nil {
+			log.Errorf("NewParentProcess create file %s error: %v", stdLogFilePath, err)
+			return nil, nil
+		}
+		cmd.Stdout = stdLogFile
 	}
 	homeDir := "/root/mydocker_images/"
 	mntDir := homeDir + "mnt/"

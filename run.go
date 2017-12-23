@@ -16,7 +16,11 @@ import (
 )
 
 func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume string, containerName string) {
-	parent, writePipe := container.NewParentProcess(tty, volume)
+	id := randStringBytes(10)
+	if containerName == "" {
+		containerName = id
+	}
+	parent, writePipe := container.NewParentProcess(tty, volume, containerName)
 	if parent == nil {
 		log.Errorf("New parent process error")
 		return
@@ -25,7 +29,7 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume str
 	if err := parent.Start(); err != nil {
 		log.Error(err)
 	}
-	containerName, err := recordContainerInfo(parent.Process.Pid, cmdArray, containerName)
+	containerName, err := recordContainerInfo(parent.Process.Pid, cmdArray, containerName, id)
 	if err != nil {
 		log.Errorf("Record container info error: %v", err)
 		return
@@ -65,13 +69,9 @@ func randStringBytes(n int) string {
 	return string(b)
 }
 
-func recordContainerInfo(containerPID int, cmdArray []string, containerName string) (string, error) {
-	id := randStringBytes(10)
+func recordContainerInfo(containerPID int, cmdArray []string, containerName string, id string) (string, error) {
 	createdTime := time.Now().Format("2006-01-01 15:00:00")
 	command := strings.Join(cmdArray, "")
-	if containerName == "" {
-		containerName = id
-	}
 	containerInfo := &container.ContainerInfo{
 		Id: 			id,
 		Pid: 			strconv.Itoa(containerPID),
