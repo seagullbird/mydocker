@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"io/ioutil"
+	"os"
 )
 
 func stopContainer(containerName string) {
@@ -33,5 +34,21 @@ func stopContainer(containerName string) {
 	configFilePath := filepath.Join(containerInfoDir, container.ConfigName)
 	if err := ioutil.WriteFile(configFilePath, newContentBytes, 0622); err != nil {
 		log.Errorf("Write file %s error", configFilePath, err)
+	}
+}
+
+func removeContainer(containerName string) {
+	containerInfo, err := GetContainerInfoByName(containerName)
+	if err != nil {
+		log.Errorf("Get container %s info error %v", containerName, err)
+		return
+	}
+	if containerInfo.Status != container.STOP {
+		log.Errorf("Cannot remove unstopped container")
+		return
+	}
+	containerInfoDir := fmt.Sprintf(container.DefaultInfoLocation, containerName)
+	if err := os.RemoveAll(containerInfoDir); err != nil {
+		log.Errorf("Remove container %s info error: %v", containerName, err)
 	}
 }
