@@ -6,6 +6,8 @@ import (
 	"github.com/urfave/cli"
 	"github.com/seagullbird/mydocker/container"
 	"github.com/seagullbird/mydocker/cgroups/subsystems"
+	"os"
+	"strconv"
 )
 
 var runCommand = cli.Command{
@@ -109,6 +111,41 @@ var logCommand = cli.Command{
 		}
 		containerName := context.Args().Get(0)
 		logContainer(containerName)
+		return nil
+	},
+}
+
+var execCommand = cli.Command{
+	Name: "exec",
+	Usage: "exec a command into a container",
+	Action: func(context *cli.Context) error {
+		// The second time it gots here, C code has already been executed, thus return
+		if os.Getenv(ENV_EXEC_CMD) != "" {
+			log.Infof("pid callback pid %s", strconv.Itoa(os.Getgid()))
+			return nil
+		}
+		if len(context.Args()) < 2 {
+			return fmt.Errorf("Missing container name or command")
+		}
+		containerName := context.Args().Get(0)
+		var cmdArray []string
+		for _, arg := range context.Args().Tail() {
+			cmdArray = append(cmdArray, arg)
+		}
+		ExecContainer(containerName, cmdArray)
+		return nil
+	},
+}
+
+var stopCommand = cli.Command{
+	Name: "stop",
+	Usage: "stop a container",
+	Action: func(context *cli.Context) error {
+		if len(context.Args()) < 1 {
+			return fmt.Errorf("Missing container name")
+		}
+		containerName := context.Args().Get(0)
+		stopContainer(containerName)
 		return nil
 	},
 }
