@@ -38,9 +38,9 @@ func GetCgroupPath(subsystem string, cgroupPath string, autoCreate bool) (string
 	cgroupAbsPath := path.Join(cgroupRoot, cgroupPath)
 	if _, err := os.Stat(cgroupAbsPath); err == nil || (autoCreate && os.IsNotExist(err)) {
 		if os.IsNotExist(err) {
-			if err := os.Mkdir(cgroupAbsPath, 0755); err != nil {
+			if err := os.Mkdir(cgroupAbsPath, 0755); err == nil {
 			} else {
-				return "", fmt.Errorf("error creating cgroup %v", err)
+				return "", fmt.Errorf("Create cgroup %s error: %v", cgroupAbsPath, err)
 			}
 		}
 		return cgroupAbsPath, nil

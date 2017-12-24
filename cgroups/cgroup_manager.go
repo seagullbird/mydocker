@@ -2,7 +2,7 @@ package cgroups
 
 import (
 	"github.com/seagullbird/mydocker/cgroups/subsystems"
-	"github.com/Sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
 type CgroupManager struct {
@@ -16,16 +16,20 @@ func NewCgroupManager(path string) *CgroupManager {
 	}
 }
 
-func (c *CgroupManager) Apply(pid int) error {
+func (c *CgroupManager) Apply(pid int, res *subsystems.ResourceConfig) error {
 	for _, subSysIns := range(subsystems.SubsystemsIns) {
-		subSysIns.Apply(c.Path, pid)
+		if err := subSysIns.Apply(c.Path, pid, res); err != nil {
+			log.Errorf("Applying cgroup error: %v", err)
+		}
 	}
 	return nil
 }
 
 func (c *CgroupManager) Set(res *subsystems.ResourceConfig) error {
 	for _, subSysIns := range(subsystems.SubsystemsIns) {
-		subSysIns.Set(c.Path, res)
+		if err := subSysIns.Set(c.Path, res); err != nil {
+			log.Errorf("Setting cgroup error: %v", err)
+		}
 	}
 	return nil
 }
@@ -33,7 +37,7 @@ func (c *CgroupManager) Set(res *subsystems.ResourceConfig) error {
 func (c *CgroupManager) Destroy() error {
 	for _, subSysIns := range(subsystems.SubsystemsIns) {
 		if err := subSysIns.Remove(c.Path); err != nil {
-			logrus.Warnf("remove cgroup fail %v", err)
+			log.Warnf("remove cgroup fail %v", err)
 		}
 	}
 	return nil

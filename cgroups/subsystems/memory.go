@@ -31,7 +31,10 @@ func (s *MemorySubSystem) Set(cgroupPath string, res *ResourceConfig) error {
 	}
 }
 
-func (s *MemorySubSystem) Apply(cgroupPath string, pid int) error {
+func (s *MemorySubSystem) Apply(cgroupPath string, pid int, res *ResourceConfig) error {
+	if res.MemoryLimit == "" {
+		return nil
+	}
 	if subsysCgroupPath, err := GetCgroupPath(s.Name(), cgroupPath, false); err == nil {
 	    // write process pid into tasks
 	    if err := ioutil.WriteFile(path.Join(subsysCgroupPath, "tasks"), []byte(strconv.Itoa(pid)), 0644); err != nil {

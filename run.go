@@ -35,12 +35,12 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, co
 		return
 	}
 
-	cgroupManager := cgroups.NewCgroupManager("mydocker-cgroup")
+	cgroupManager := cgroups.NewCgroupManager("mydocker")
 	defer cgroupManager.Destroy()
 	// Set resources limitation
 	cgroupManager.Set(res)
 	// Add container process into each cgroup
-	cgroupManager.Apply(parent.Process.Pid)
+	cgroupManager.Apply(parent.Process.Pid, res)
 	// initialize the container
 	sendInitCommand(cmdArray, writePipe)
 	if tty {
@@ -48,7 +48,6 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, co
 		container.DeleteWorkSpace(volume, containerName, imageName)
 		deleteContainerInfo(containerName)
 	}
-	os.Exit(0)
 }
 
 func sendInitCommand(cmdArray []string, writePipe *os.File) {
