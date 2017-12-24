@@ -15,12 +15,12 @@ import (
 	"path/filepath"
 )
 
-func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume string, containerName string) {
+func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, containerName, imageName string) {
 	id := randStringBytes(10)
 	if containerName == "" {
 		containerName = id
 	}
-	parent, writePipe := container.NewParentProcess(tty, volume, containerName)
+	parent, writePipe := container.NewParentProcess(tty, volume, containerName, imageName)
 	if parent == nil {
 		log.Errorf("New parent process error")
 		return
@@ -29,7 +29,7 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume str
 	if err := parent.Start(); err != nil {
 		log.Error(err)
 	}
-	containerName, err := recordContainerInfo(parent.Process.Pid, cmdArray, containerName, id)
+	containerName, err := recordContainerInfo(parent.Process.Pid, cmdArray, containerName, id, volume, imageName)
 	if err != nil {
 		log.Errorf("Record container info error: %v", err)
 		return
@@ -45,9 +45,8 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume str
 	sendInitCommand(cmdArray, writePipe)
 	if tty {
 		parent.Wait()
-		homeDir := "/root/mydocker_images/"
-		mntDir := homeDir + "mnt/"
-		container.DeleteWorkSpace(homeDir, mntDir, volume)
+		container.DeleteWorkSpace(volume, containerName, imageName)
+		deleteContainerInfo(containerName)
 	}
 	os.Exit(0)
 }
@@ -69,7 +68,7 @@ func randStringBytes(n int) string {
 	return string(b)
 }
 
-func recordContainerInfo(containerPID int, cmdArray []string, containerName string, id string) (string, error) {
+func recordContainerInfo(containerPID int, cmdArray []string, containerName, id, volume, imageName string) (string, error) {
 	createdTime := time.Now().Format("2006-01-01 15:00:00")
 	command := strings.Join(cmdArray, "")
 	containerInfo := &container.ContainerInfo{
@@ -79,6 +78,8 @@ func recordContainerInfo(containerPID int, cmdArray []string, containerName stri
 		CreatedTime:	createdTime,
 		Status: 		container.RUNNING,
 		Name: 			containerName,
+		Volume:			volume,
+		Image:			imageName,
 	}
 	jsonBytes, err := json.Marshal(containerInfo)
 	if err != nil {
@@ -105,8 +106,8 @@ func recordContainerInfo(containerPID int, cmdArray []string, containerName stri
 	return containerName, nil
 }
 
-func deleteContainerInfo(containerId string) {
-	containerInfoDir := fmt.Sprintf(container.DefaultInfoLocation, containerId)
+func deleteContainerInfo(containerName string) {
+	containerInfoDir := fmt.Sprintf(container.DefaultInfoLocation, containerName)
 	if err := os.RemoveAll(containerInfoDir); err != nil {
 		log.Errorf("Remove dir %s error %v", containerInfoDir, err)
 	}

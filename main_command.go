@@ -31,10 +31,6 @@ var runCommand = cli.Command{
 			Name:	"cpushare",
 			Usage:	"cpu share limit",
 		},
-		cli.StringFlag{
-			Name:	"v",
-			Usage:	"volume",
-		},
 		cli.BoolFlag{
 			Name:	"d",
 			Usage:	"detach container",
@@ -43,28 +39,38 @@ var runCommand = cli.Command{
 			Name:	"name",
 			Usage:	"container name",
 		},
+		cli.StringFlag{
+			Name:	"v",
+			Usage:	"volume",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
 			return fmt.Errorf("Missing container command")
 		}
 		tty := context.Bool("it")
+		memoryLimit := context.String("m")
+		cpuset := context.String("cpuset")
+		cpushare := context.String("cpushare")
 		detach := context.Bool("d")
+		containerName := context.String("name")
+		volume := context.String("v")
+
 		if tty && detach {
 			return fmt.Errorf("-it and -d parameter can not both exist.")
+		}
+		resConf := &subsystems.ResourceConfig{
+			MemoryLimit:	memoryLimit,
+			CpuSet:			cpuset,
+			CpuShare:		cpushare,
 		}
 		var cmdArray []string
 		for _, arg := range context.Args() {
 			cmdArray = append(cmdArray, arg)
 		}
-		resConf := &subsystems.ResourceConfig{
-			MemoryLimit:	context.String("m"),
-			CpuSet:			context.String("cpuset"),
-			CpuShare:		context.String("cpushare"),
-		}
-		volume := context.String("v")
-		containerName := context.String("name")
-		Run(tty, cmdArray, resConf, volume, containerName)
+		imageName := cmdArray[0]
+		cmdArray = cmdArray[1:]
+		Run(tty, cmdArray, resConf, volume, containerName, imageName)
 		return nil
 	},
 }
@@ -82,13 +88,19 @@ var initCommand = cli.Command{
 var commitCommand = cli.Command{
 	Name:  "commit",
 	Usage: "commit a container into image",
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name: "name",
+			Usage: "package name",
+		},
+	},
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
 			return fmt.Errorf("Missing container name")
 		}
-		imageName := context.Args().Get(0)
-		//commitContainer(containerName)
-		commitContainer(imageName)
+		packageName := context.String("name")
+		containerName := context.Args().Get(0)
+		commitContainer(packageName, containerName)
 		return nil
 	},
 }

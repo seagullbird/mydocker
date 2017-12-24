@@ -51,4 +51,5 @@ func removeContainer(containerName string) {
 	if err := os.RemoveAll(containerInfoDir); err != nil {
 		log.Errorf("Remove container %s info error: %v", containerName, err)
 	}
+	container.DeleteWorkSpace(containerInfo.Volume, containerName, containerInfo.Image)
 }
