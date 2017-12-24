@@ -43,6 +43,10 @@ var runCommand = cli.Command{
 			Name:	"v",
 			Usage:	"volume",
 		},
+		cli.StringSliceFlag{
+			Name:	"e",
+			Usage:	"set environment variables",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
@@ -55,6 +59,7 @@ var runCommand = cli.Command{
 		detach := context.Bool("d")
 		containerName := context.String("name")
 		volume := context.String("v")
+		envSlice := context.StringSlice("e")
 
 		if tty && detach {
 			return fmt.Errorf("-it and -d parameter can not both exist.")
@@ -70,7 +75,7 @@ var runCommand = cli.Command{
 		}
 		imageName := cmdArray[0]
 		cmdArray = cmdArray[1:]
-		Run(tty, cmdArray, resConf, volume, containerName, imageName)
+		Run(tty, cmdArray, resConf, volume, containerName, imageName, envSlice)
 		return nil
 	},
 }

@@ -21,7 +21,6 @@ func stopContainer(containerName string) {
 	pid, _ := strconv.Atoi(containerInfo.Pid)
 	if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
 		log.Errorf("Stop container %s error %v", containerName, err)
-		return
 	}
 	containerInfo.Status = container.STOP
 	containerInfo.Pid = " "
@@ -35,6 +34,7 @@ func stopContainer(containerName string) {
 	if err := ioutil.WriteFile(configFilePath, newContentBytes, 0622); err != nil {
 		log.Errorf("Write file %s error", configFilePath, err)
 	}
+	log.Infof("Updating container %s status to STOP.", containerName)
 }
 
 func removeContainer(containerName string) {
