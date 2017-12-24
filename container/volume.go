@@ -36,31 +36,7 @@ func CreateReadOnlyLayer(imageName string) {
 		return
 	}
 	if exist == false {
-		if err := os.Mkdir(imageDir, 0777); err != nil {
-			log.Errorf("Mkdir dir %s error. %v", imageDir, err)
-		}
-		// pull docker image and export it
-		imageTarDir := fmt.Sprintf("/tmp/mydocker/image_tar/%s.tar", imageName)
-		imageTarExists, err := PathExists(imageTarDir)
-		if err != nil {
-			log.Infof("Fail to judge whether dir %s exists. %v", imageDir, err)
-			return
-		}
-		if imageTarExists == false {
-			cmd := exec.Command("docker", "pull", imageName)
-			if err := cmd.Run(); err != nil {
-				log.Errorf("Pulling docker image error: %v", err)
-			}
-
-			cmd = exec.Command("docker", "export", fmt.Sprintf("$(docker create %s)", imageName), ">", imageTarDir)
-			if err := cmd.Run(); err != nil {
-				log.Errorf("Exporting docker image error: %v", err)
-			}
-		}
-
-		if _, err := exec.Command("tar", "-xvf", imageTarDir, "-C", imageDir).CombinedOutput(); err != nil {
-			log.Errorf("Untar dir %s error %v", imageDir, err)
-		}
+		log.Errorf("Image not found. Run docker pull <image> && docker export first.")
 	}
 }
 
