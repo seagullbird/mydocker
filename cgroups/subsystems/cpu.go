@@ -1,12 +1,12 @@
 package subsystems
 
 import (
+	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
+	"os"
 	"path"
 	"strconv"
-	"fmt"
-	"os"
-	log "github.com/Sirupsen/logrus"
 )
 
 type CpuSubSystem struct {

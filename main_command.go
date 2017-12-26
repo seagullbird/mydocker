@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
-	"github.com/urfave/cli"
-	"github.com/seagullbird/mydocker/container"
 	"github.com/seagullbird/mydocker/cgroups/subsystems"
+	"github.com/seagullbird/mydocker/container"
+	"github.com/urfave/cli"
 	"os"
 	"strconv"
 )
@@ -20,32 +20,32 @@ var runCommand = cli.Command{
 			Usage: "enable tty",
 		},
 		cli.StringFlag{
-			Name:	"m",
-			Usage:	"memory limit",
+			Name:  "m",
+			Usage: "memory limit",
 		},
 		cli.StringFlag{
-			Name:	"cpuset",
-			Usage:	"cpuset limit",
+			Name:  "cpuset",
+			Usage: "cpuset limit",
 		},
 		cli.StringFlag{
-			Name:	"cpushare",
-			Usage:	"cpu share limit",
+			Name:  "cpushare",
+			Usage: "cpu share limit",
 		},
 		cli.BoolFlag{
-			Name:	"d",
-			Usage:	"detach container",
+			Name:  "d",
+			Usage: "detach container",
 		},
 		cli.StringFlag{
-			Name:	"name",
-			Usage:	"container name",
+			Name:  "name",
+			Usage: "container name",
 		},
 		cli.StringFlag{
-			Name:	"v",
-			Usage:	"volume",
+			Name:  "v",
+			Usage: "volume",
 		},
 		cli.StringSliceFlag{
-			Name:	"e",
-			Usage:	"set environment variables",
+			Name:  "e",
+			Usage: "set environment variables",
 		},
 	},
 	Action: func(context *cli.Context) error {
@@ -65,9 +65,9 @@ var runCommand = cli.Command{
 			return fmt.Errorf("-it and -d parameter can not both exist.")
 		}
 		resConf := &subsystems.ResourceConfig{
-			MemoryLimit:	memoryLimit,
-			CpuSet:			cpuset,
-			CpuShare:		cpushare,
+			MemoryLimit: memoryLimit,
+			CpuSet:      cpuset,
+			CpuShare:    cpushare,
 		}
 		var cmdArray []string
 		for _, arg := range context.Args() {
@@ -95,7 +95,7 @@ var commitCommand = cli.Command{
 	Usage: "commit a container into image",
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name: "name",
+			Name:  "name",
 			Usage: "package name",
 		},
 	},
@@ -111,7 +111,7 @@ var commitCommand = cli.Command{
 }
 
 var listCommand = cli.Command{
-	Name: "ps",
+	Name:  "ps",
 	Usage: "list all the containers",
 	Action: func(context *cli.Context) error {
 		ListContainers()
@@ -120,7 +120,7 @@ var listCommand = cli.Command{
 }
 
 var logCommand = cli.Command{
-	Name: "logs",
+	Name:  "logs",
 	Usage: "print logs of a container",
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
@@ -133,7 +133,7 @@ var logCommand = cli.Command{
 }
 
 var execCommand = cli.Command{
-	Name: "exec",
+	Name:  "exec",
 	Usage: "exec a command into a container",
 	Action: func(context *cli.Context) error {
 		// The second time it gots here, C code has already been executed, thus return
@@ -155,7 +155,7 @@ var execCommand = cli.Command{
 }
 
 var stopCommand = cli.Command{
-	Name: "stop",
+	Name:  "stop",
 	Usage: "stop a container",
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
@@ -168,7 +168,7 @@ var stopCommand = cli.Command{
 }
 
 var removeCommand = cli.Command{
-	Name: "rm",
+	Name:  "rm",
 	Usage: "remove a container",
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {

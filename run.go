@@ -1,18 +1,18 @@
 package main
 
 import (
-	"github.com/seagullbird/mydocker/container"
-	log "github.com/Sirupsen/logrus"
-	"os"
-	"github.com/seagullbird/mydocker/cgroups/subsystems"
-	"strings"
-	"github.com/seagullbird/mydocker/cgroups"
-	"math/rand"
-	"time"
-	"strconv"
 	"encoding/json"
 	"fmt"
+	log "github.com/Sirupsen/logrus"
+	"github.com/seagullbird/mydocker/cgroups"
+	"github.com/seagullbird/mydocker/cgroups/subsystems"
+	"github.com/seagullbird/mydocker/container"
+	"math/rand"
+	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
 )
 
 func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, containerName, imageName string, envSlice []string) {
@@ -71,14 +71,14 @@ func recordContainerInfo(containerPID int, cmdArray []string, containerName, id,
 	createdTime := time.Now().Format("2006-01-01 15:00:00")
 	command := strings.Join(cmdArray, "")
 	containerInfo := &container.ContainerInfo{
-		Id: 			id,
-		Pid: 			strconv.Itoa(containerPID),
-		Command: 		command,
-		CreatedTime:	createdTime,
-		Status: 		container.RUNNING,
-		Name: 			containerName,
-		Volume:			volume,
-		Image:			imageName,
+		Id:          id,
+		Pid:         strconv.Itoa(containerPID),
+		Command:     command,
+		CreatedTime: createdTime,
+		Status:      container.RUNNING,
+		Name:        containerName,
+		Volume:      volume,
+		Image:       imageName,
 	}
 	jsonBytes, err := json.Marshal(containerInfo)
 	if err != nil {

@@ -1,12 +1,12 @@
 package container
 
 import (
+	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"os"
 	"os/exec"
-	"strings"
 	"path/filepath"
-	log "github.com/Sirupsen/logrus"
-	"fmt"
+	"strings"
 )
 
 //Create an Overlay filesystem as container root workspace
@@ -60,9 +60,9 @@ func CreateMountPoint(containerName, imageName string) {
 		log.Errorf("Mkdir dir %s error. %v", mntDir, err)
 	}
 	dirs := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s",
-						layerPath(imageName),
-						containerWriteLayerPath(containerName),
-						containerWorkPath(containerName, "image"))
+		layerPath(imageName),
+		containerWriteLayerPath(containerName),
+		containerWorkPath(containerName, "image"))
 	cmd := exec.Command("mount", "-t", "overlay", "-o", dirs, "none", mntDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -107,7 +107,7 @@ func PathExists(path string) (bool, error) {
 	return false, err
 }
 
-func volumeDirExtract(volume string) ([]string) {
+func volumeDirExtract(volume string) []string {
 	var volumeDirs []string
 	volumeDirs = strings.Split(volume, ":")
 	return volumeDirs
@@ -131,9 +131,9 @@ func MountVolume(volumeDirs []string, containerName string) {
 		log.Infof("Mkdir container dir %s error: %v", containerVolumeDir, err)
 	}
 	dirs := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s",
-						volumeLowerDir,
-						volumeUpperDir,
-						volumeWorkDir)
+		volumeLowerDir,
+		volumeUpperDir,
+		volumeWorkDir)
 	cmd := exec.Command("mount", "-t", "overlay", "-o", dirs, "none", containerVolumeDir)
 	if err := cmd.Run(); err != nil {
 		log.Errorf("Mount volume failed error: %v", err)

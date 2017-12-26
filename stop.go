@@ -1,15 +1,15 @@
 package main
 
 import (
-	log "github.com/Sirupsen/logrus"
-	"syscall"
-	"strconv"
-	"github.com/seagullbird/mydocker/container"
 	"encoding/json"
 	"fmt"
-	"path/filepath"
+	log "github.com/Sirupsen/logrus"
+	"github.com/seagullbird/mydocker/container"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strconv"
+	"syscall"
 )
 
 func stopContainer(containerName string) {

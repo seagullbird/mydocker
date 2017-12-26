@@ -1,11 +1,11 @@
 package subsystems
 
 import (
-	"os"
 	"bufio"
-	"strings"
-	"path"
 	"fmt"
+	"os"
+	"path"
+	"strings"
 )
 
 func FindCgroupMountPoint(subsystem string) string {

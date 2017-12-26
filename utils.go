@@ -1,11 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/seagullbird/mydocker/container"
-	"path/filepath"
 	"io/ioutil"
-	"encoding/json"
+	"path/filepath"
 )
 
 func GetContainerInfoByName(containerName string) (*container.ContainerInfo, error) {

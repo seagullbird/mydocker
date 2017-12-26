@@ -1,12 +1,12 @@
 package subsystems
 
 import (
-	"io/ioutil"
-	"path"
 	"fmt"
-	"os"
-	"strconv"
 	log "github.com/Sirupsen/logrus"
+	"io/ioutil"
+	"os"
+	"path"
+	"strconv"
 )
 
 type MemorySubSystem struct {
@@ -36,9 +36,9 @@ func (s *MemorySubSystem) Apply(cgroupPath string, pid int, res *ResourceConfig)
 		return nil
 	}
 	if subsysCgroupPath, err := GetCgroupPath(s.Name(), cgroupPath, false); err == nil {
-	    // write process pid into tasks
-	    if err := ioutil.WriteFile(path.Join(subsysCgroupPath, "tasks"), []byte(strconv.Itoa(pid)), 0644); err != nil {
-	    	return fmt.Errorf("set cgroup proc fail %v", err)
+		// write process pid into tasks
+		if err := ioutil.WriteFile(path.Join(subsysCgroupPath, "tasks"), []byte(strconv.Itoa(pid)), 0644); err != nil {
+			return fmt.Errorf("set cgroup proc fail %v", err)
 		}
 		return nil
 	} else {

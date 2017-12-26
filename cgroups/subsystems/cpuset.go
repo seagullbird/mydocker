@@ -1,12 +1,12 @@
 package subsystems
 
 import (
-	"io/ioutil"
-	"path"
 	"fmt"
-	"strconv"
-	"os"
 	log "github.com/Sirupsen/logrus"
+	"io/ioutil"
+	"os"
+	"path"
+	"strconv"
 )
 
 type CpusetSubSystem struct {

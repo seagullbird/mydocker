@@ -1,14 +1,13 @@
 package main
 
-
 import (
-	log "github.com/Sirupsen/logrus"
 	"fmt"
-	"os/exec"
+	log "github.com/Sirupsen/logrus"
 	"github.com/seagullbird/mydocker/container"
+	"os/exec"
 )
 
-func commitContainer(packageName, containerName string){
+func commitContainer(packageName, containerName string) {
 	mntDir := container.ContainerMntPath(containerName)
 	exists, err := container.PathExists(mntDir)
 	if err != nil || exists == false {

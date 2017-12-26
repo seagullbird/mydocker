@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/seagullbird/mydocker/container"
-	"path/filepath"
-	"os"
 	log "github.com/Sirupsen/logrus"
+	"github.com/seagullbird/mydocker/container"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 )
 
 func logContainer(containerName string) {

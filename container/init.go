@@ -1,14 +1,14 @@
 package container
 
 import (
-	"os"
-	"syscall"
+	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
-	"strings"
-	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"syscall"
 )
 
 func RunContainerInitProcess() error {
@@ -52,11 +52,11 @@ func setUpMount() {
 	defaultMountFlags := syscall.MS_NOEXEC | syscall.MS_NOSUID | syscall.MS_NODEV
 	syscall.Mount("proc", "/proc", "proc", uintptr(defaultMountFlags), "")
 	// mount dev
-	syscall.Mount("tmpfs", "/dev", "tmpfs", syscall.MS_NOSUID | syscall.MS_STRICTATIME, "mode=755")
+	syscall.Mount("tmpfs", "/dev", "tmpfs", syscall.MS_NOSUID|syscall.MS_STRICTATIME, "mode=755")
 }
 
 func pivotRoot(newRoot string) error {
-	if err := syscall.Mount(newRoot, newRoot, "bind", syscall.MS_BIND | syscall.MS_REC, ""); err != nil {
+	if err := syscall.Mount(newRoot, newRoot, "bind", syscall.MS_BIND|syscall.MS_REC, ""); err != nil {
 		return fmt.Errorf("Mount rootfs to itself error: %v", err)
 	}
 	// Create <newRoot>/pivot.old directory to put old root

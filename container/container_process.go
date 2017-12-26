@@ -1,37 +1,37 @@
 package container
 
 import (
-	"syscall"
-	"os/exec"
-	"os"
-	log "github.com/Sirupsen/logrus"
-	"path/filepath"
 	"fmt"
+	log "github.com/Sirupsen/logrus"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"syscall"
 )
 
 type ContainerInfo struct {
-	Pid			string `json:pid`
-	Id			string `json:id`
-	Name 		string `json:name`
-	Command 	string `json:command`
-	CreatedTime	string `json:createTime`
-	Status 		string `json:status`
-	Volume		string `json:volume`
-	Image		string `json:image`
+	Pid         string `json:pid`
+	Id          string `json:id`
+	Name        string `json:name`
+	Command     string `json:command`
+	CreatedTime string `json:createTime`
+	Status      string `json:status`
+	Volume      string `json:volume`
+	Image       string `json:image`
 }
 
 var (
-	RUNNING				string = "running"
-	STOP 				string = "stopped"
-	Exit 				string = "exited"
-	ConfigName			string = "config.json"
-	ContainerLogFile	string = "container.log"
-	RootDir				string = "/var/lib/mydocker/"
+	RUNNING             string = "running"
+	STOP                string = "stopped"
+	Exit                string = "exited"
+	ConfigName          string = "config.json"
+	ContainerLogFile    string = "container.log"
+	RootDir             string = "/var/lib/mydocker/"
 	DefaultInfoLocation string = filepath.Join(RootDir, "containers/%s/")
-	LayerDir			string = filepath.Join(RootDir, "overlay2/%s/")
-	MntDir				string = filepath.Join(RootDir, "overlay2/%s/merged/")
-	WriteLayerDir		string = filepath.Join(RootDir, "overlay2/%s/write_layer/")
-	WorkDir				string = filepath.Join(RootDir, "overlay2/%s/work/%s/")
+	LayerDir            string = filepath.Join(RootDir, "overlay2/%s/")
+	MntDir              string = filepath.Join(RootDir, "overlay2/%s/merged/")
+	WriteLayerDir       string = filepath.Join(RootDir, "overlay2/%s/write_layer/")
+	WorkDir             string = filepath.Join(RootDir, "overlay2/%s/work/%s/")
 )
 
 func layerPath(imageName string) string {
@@ -50,7 +50,7 @@ func containerWorkPath(containerName, sub string) string {
 	return fmt.Sprintf(WorkDir, containerName, sub)
 }
 
-func NewParentProcess (tty bool, volume, containerName, imageName string, envSlice []string) (*exec.Cmd, *os.File) {
+func NewParentProcess(tty bool, volume, containerName, imageName string, envSlice []string) (*exec.Cmd, *os.File) {
 	readPipe, writePipe, err := NewPipe()
 	if err != nil {
 		log.Errorf("New pipe error %v", err)
