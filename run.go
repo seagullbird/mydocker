@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, containerName, imageName string, envSlice []string) {
+func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, containerName, imageName string, envSlice []string, network string, portmapping []string) {
 	id := randStringBytes(10)
 	if containerName == "" {
 		containerName = id
