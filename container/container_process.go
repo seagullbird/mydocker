@@ -10,14 +10,15 @@ import (
 )
 
 type ContainerInfo struct {
-	Pid         string `json:pid`
-	Id          string `json:id`
-	Name        string `json:name`
-	Command     string `json:command`
-	CreatedTime string `json:createTime`
-	Status      string `json:status`
-	Volume      string `json:volume`
-	Image       string `json:image`
+	Pid         string   `json:pid`
+	Id          string   `json:id`
+	Name        string   `json:name`
+	Command     string   `json:command`
+	CreatedTime string   `json:createTime`
+	Status      string   `json:status`
+	Volume      string   `json:volume`
+	Image       string   `json:image`
+	PortMapping []string `json:portmapping`
 }
 
 var (
