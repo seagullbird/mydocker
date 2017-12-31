@@ -17,20 +17,20 @@ func (d *BridgeNetworkDriver) Name() string {
 	return "bridge"
 }
 
-func (d *BridgeNetworkDriver) Create(subnet string, name string) (*Network, error) {
-	ip, ipRange, _ := net.ParseCIDR(subnet)
-	ipRange.IP = ip
-	n := &Network{
+func (d *BridgeNetworkDriver) Create(ipRange *net.IPNet, name string) (*Network, error) {
+	// ipRange includes the gateway ip as ipRange.IP
+	// and the mask as ipRange.Mask
+	nw := &Network{
 		Name:    name,
 		IpRange: ipRange,
 		Driver:  d.Name(),
 	}
-	err := d.initBridge(n)
+	err := d.initBridge(nw)
 	if err != nil {
 		log.Errorf("error init bridge: %v", err)
 	}
 
-	return n, err
+	return nw, err
 }
 
 func (d *BridgeNetworkDriver) Delete(network *Network) error {
@@ -72,19 +72,15 @@ func (d *BridgeNetworkDriver) Disconnect(network *Network, endpoint *Endpoint) e
 	return nil
 }
 
-func (d *BridgeNetworkDriver) initBridge(n *Network) error {
+func (d *BridgeNetworkDriver) initBridge(nw *Network) error {
 	// try to get bridge by name, if it already exists then just exit
-	bridgeName := n.Name
+	bridgeName := nw.Name
 	if err := createBridgeInterface(bridgeName); err != nil {
 		return fmt.Errorf("Error add bridge： %s, Error: %v", bridgeName, err)
 	}
 
-	// Set bridge IP
-	gatewayIP := *n.IpRange
-	gatewayIP.IP = n.IpRange.IP
-
-	if err := setInterfaceIP(bridgeName, gatewayIP.String()); err != nil {
-		return fmt.Errorf("Error assigning address: %s on bridge: %s with an error of: %v", gatewayIP, bridgeName, err)
+	if err := setInterfaceIP(bridgeName, nw.IpRange); err != nil {
+		return fmt.Errorf("Error assigning address: %s on bridge: %s with an error of: %v", nw.IpRange.String(), bridgeName, err)
 	}
 
 	if err := setInterfaceUP(bridgeName); err != nil {
@@ -92,7 +88,7 @@ func (d *BridgeNetworkDriver) initBridge(n *Network) error {
 	}
 
 	// Setup iptables
-	if err := setupIPTables(bridgeName, n.IpRange); err != nil {
+	if err := setupIPTables(bridgeName, nw.IpRange.String()); err != nil {
 		return fmt.Errorf("Error setting iptables for %s: %v", bridgeName, err)
 	}
 
@@ -119,6 +115,7 @@ func (d *BridgeNetworkDriver) deleteBridge(n *Network) error {
 
 func createBridgeInterface(bridgeName string) error {
 	_, err := net.InterfaceByName(bridgeName)
+	// err == nil implies that there is already this interface
 	if err == nil || !strings.Contains(err.Error(), "no such network interface") {
 		return err
 	}
@@ -126,9 +123,7 @@ func createBridgeInterface(bridgeName string) error {
 	// create *netlink.Bridge object
 	la := netlink.NewLinkAttrs()
 	la.Name = bridgeName
-	multicasesnooping := false
-	hellotime := uint32(2)
-	br := &netlink.Bridge{la, &multicasesnooping, &hellotime}
+	br := &netlink.Bridge{LinkAttrs: la}
 	if err := netlink.LinkAdd(br); err != nil {
 		return fmt.Errorf("Bridge creation failed for bridge %s: %v", bridgeName, err)
 	}
@@ -148,7 +143,7 @@ func setInterfaceUP(interfaceName string) error {
 }
 
 // Set the IP addr of a netlink interface
-func setInterfaceIP(name string, rawIP string) error {
+func setInterfaceIP(name string, ipnet *net.IPNet) error {
 	retries := 2
 	var iface netlink.Link
 	var err error
@@ -163,16 +158,12 @@ func setInterfaceIP(name string, rawIP string) error {
 	if err != nil {
 		return fmt.Errorf("Abandoning retrieving the new bridge link from netlink, Run [ ip link ] to troubleshoot the error: %v", err)
 	}
-	ipNet, err := netlink.ParseIPNet(rawIP)
-	if err != nil {
-		return err
-	}
-	addr := &netlink.Addr{ipNet, "", 0, 0, nil, net.IP{255, 255, 255, 255}, 255, 255}
+	addr := &netlink.Addr{IPNet: ipnet, Label: "", Flags: 0, Scope: 0, Peer: nil}
 	return netlink.AddrAdd(iface, addr)
 }
 
-func setupIPTables(bridgeName string, subnet *net.IPNet) error {
-	iptablesCmd := fmt.Sprintf("-t nat -A POSTROUTING -s %s ! -o %s -j MASQUERADE", subnet.String(), bridgeName)
+func setupIPTables(bridgeName string, subnet string) error {
+	iptablesCmd := fmt.Sprintf("-t nat -A POSTROUTING -s %s ! -o %s -j MASQUERADE", subnet, bridgeName)
 	cmd := exec.Command("iptables", strings.Split(iptablesCmd, " ")...)
 	//err := cmd.Run()
 	output, err := cmd.Output()

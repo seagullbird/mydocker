@@ -5,7 +5,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 )
 
@@ -21,7 +21,7 @@ func (s *MemorySubSystem) Set(cgroupPath string, res *ResourceConfig) error {
 		if res.MemoryLimit != "" {
 			log.Infof("Setting memory limit: %v", res.MemoryLimit)
 			// write memory limit into memory.limit_in_bytes
-			if err := ioutil.WriteFile(path.Join(subsysCgroupPath, "memory.limit_in_bytes"), []byte(res.MemoryLimit), 0644); err != nil {
+			if err := ioutil.WriteFile(filepath.Join(subsysCgroupPath, "memory.limit_in_bytes"), []byte(res.MemoryLimit), 0644); err != nil {
 				return fmt.Errorf("set cgroup memory fail %v", err)
 			}
 		}
@@ -37,7 +37,7 @@ func (s *MemorySubSystem) Apply(cgroupPath string, pid int, res *ResourceConfig)
 	}
 	if subsysCgroupPath, err := GetCgroupPath(s.Name(), cgroupPath, false); err == nil {
 		// write process pid into tasks
-		if err := ioutil.WriteFile(path.Join(subsysCgroupPath, "tasks"), []byte(strconv.Itoa(pid)), 0644); err != nil {
+		if err := ioutil.WriteFile(filepath.Join(subsysCgroupPath, "tasks"), []byte(strconv.Itoa(pid)), 0644); err != nil {
 			return fmt.Errorf("set cgroup proc fail %v", err)
 		}
 		return nil

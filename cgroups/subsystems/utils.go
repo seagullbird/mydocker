@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -35,7 +35,7 @@ func FindCgroupMountPoint(subsystem string) string {
 
 func GetCgroupPath(subsystem string, cgroupPath string, autoCreate bool) (string, error) {
 	cgroupRoot := FindCgroupMountPoint(subsystem)
-	cgroupAbsPath := path.Join(cgroupRoot, cgroupPath)
+	cgroupAbsPath := filepath.Join(cgroupRoot, cgroupPath)
 	if _, err := os.Stat(cgroupAbsPath); err == nil || (autoCreate && os.IsNotExist(err)) {
 		if os.IsNotExist(err) {
 			if err := os.Mkdir(cgroupAbsPath, 0755); err == nil {

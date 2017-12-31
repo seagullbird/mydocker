@@ -18,45 +18,62 @@ import (
 )
 
 type Network struct {
-	Name    string
+	// Name of the network
+	Name string
+	// the network's IP range (IP/mask)
 	IpRange *net.IPNet
-	Driver  string
+	// Name of the network driver
+	Driver string
 }
 
 var (
-	networkInfoDir = path.Join(container.RootDir, "network")
+	networkRootDir = filepath.Join(container.RootDir, "network")
+	networkInfoDir = filepath.Join(networkRootDir, "networks")
 	drivers        = map[string]NetworkDriver{}
 	networks       = map[string]*Network{}
 )
 
 type Endpoint struct {
-	ID          string           `json:id`
-	Device      netlink.Veth     `json:dev`
-	IPAddress   net.IP           `json:ip`
-	MACAddress  net.HardwareAddr `json:mac`
-	PortMapping []string         `json:portmapping`
+	ID          string           `json:"id"`
+	Device      netlink.Veth     `json:"dev"`
+	IPAddress   net.IP           `json:"ip"`
+	MACAddress  net.HardwareAddr `json:"mac"`
+	PortMapping []string         `json:"portmapping"`
 	Network     *Network
 }
 
 type NetworkDriver interface {
+	// returns the name of the driver
 	Name() string
-	Create(subnet, name string) (*Network, error)
+	// create a network
+	Create(subnet *net.IPNet, name string) (*Network, error)
+	// delete a network
 	Delete(network *Network) error
+	// connect an endpoint to a network
 	Connect(network *Network, endpoint *Endpoint) error
+	// disconnect an endpoint from a network
 	Disconnect(network *Network, endpoint *Endpoint) error
 }
 
 func CreateNetwork(driver, subnet, name string) error {
-	_, ipnet, _ := net.ParseCIDR(subnet)
-	gatewayIp, err := ipAllocator.Allocate(ipnet)
+	// ipRange is a net.IPNet pointer
+	_, ipRange, _ := net.ParseCIDR(subnet)
+
+	// allocate an ip from the given network
+	// use this ip as the gateway ip of the network
+	gatewayIp, err := ipAllocator.Allocate(ipRange)
 	if err != nil {
 		return err
 	}
-	ipnet.IP = gatewayIp
-	nw, err := drivers[driver].Create(ipnet.String(), name)
+	ipRange.IP = gatewayIp
+	// now I have a gateway ip stored in ipRange.IP
+	// as well as the network mask stored in ipRange.Mask
+	// I can create a network using the given driver
+	nw, err := drivers[driver].Create(ipRange, name)
 	if err != nil {
 		return err
 	}
+	// store the created network info
 	return nw.dump(networkInfoDir)
 }
 
@@ -68,7 +85,7 @@ func (nw *Network) dump(dumpPath string) error {
 			return err
 		}
 	}
-	nwPath := path.Join(dumpPath, nw.Name)
+	nwPath := filepath.Join(dumpPath, nw.Name)
 	nwFile, err := os.OpenFile(nwPath, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		log.Errorf("Open nwfile %s error: %v", nwPath, err)
@@ -109,14 +126,14 @@ func (nw *Network) load(loadPath string) error {
 }
 
 func (nw *Network) remove(dumpPath string) error {
-	if _, err := os.Stat(path.Join(dumpPath, nw.Name)); err != nil {
+	if _, err := os.Stat(filepath.Join(dumpPath, nw.Name)); err != nil {
 		if os.IsNotExist(err) {
 			return nil
 		}
 		return err
 	}
 
-	return os.Remove(path.Join(dumpPath, nw.Name))
+	return os.Remove(filepath.Join(dumpPath, nw.Name))
 }
 
 func Connect(networkName string, cinfo *container.ContainerInfo) error {
@@ -148,9 +165,11 @@ func Connect(networkName string, cinfo *container.ContainerInfo) error {
 }
 
 func Init() error {
+	// New a driver and save it in drivers
 	var bridgeDriver = BridgeNetworkDriver{}
 	drivers[bridgeDriver.Name()] = &bridgeDriver
 
+	// Check networkInfoDir exists and create it
 	if _, err := os.Stat(networkInfoDir); err != nil {
 		if os.IsNotExist(err) {
 			os.MkdirAll(networkInfoDir, 0644)
@@ -159,6 +178,8 @@ func Init() error {
 		}
 	}
 
+	// for each file (should be a network configuration file) under networkInfoDir,  load it into the memory
+	// save each loaded network into networks
 	filepath.Walk(networkInfoDir, func(nwPath string, info os.FileInfo, err error) error {
 		if info.IsDir() {
 			return nil
@@ -201,8 +222,13 @@ func DeleteNetwork(networkName string) error {
 	if !ok {
 		return fmt.Errorf("No such network: %s", networkName)
 	}
-	if err := ipAllocator.Release(nw.IpRange, &nw.IpRange.IP); err != nil {
-		return fmt.Errorf("Error Removing network Driver: %v", err)
+	_, cidr, _ := net.ParseCIDR(nw.IpRange.String())
+	if err := ipAllocator.Delete(cidr); err != nil {
+		return fmt.Errorf("Error Removing network ipam: %v", err)
+	}
+
+	if err := drivers[nw.Driver].Delete(nw); err != nil {
+		return fmt.Errorf("Error removing network driver: %v", err)
 	}
 
 	return nw.remove(networkInfoDir)
@@ -216,10 +242,10 @@ func configEndpointIpAddressAndRoute(ep *Endpoint, cinfo *container.ContainerInf
 
 	defer enterContainerNetns(&peerLink, cinfo)()
 
-	interfaceIP := *ep.Network.IpRange
+	interfaceIP := ep.Network.IpRange
 	interfaceIP.IP = ep.IPAddress
 
-	if err = setInterfaceIP(ep.Device.PeerName, interfaceIP.String()); err != nil {
+	if err = setInterfaceIP(ep.Device.PeerName, interfaceIP); err != nil {
 		return fmt.Errorf("%v,%s", ep.Network, err)
 	}
 

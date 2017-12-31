@@ -5,7 +5,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 )
 
@@ -23,11 +23,11 @@ func (s *CpusetSubSystem) Set(cgroupPath string, res *ResourceConfig) error {
 			// cpuset.mems also need to be configured
 			// https://www.richardhsu.me/posts/2014/12/08/cgroups-and-no-space.html
 			// https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/resource_management_guide/sec-cpuset
-			if err := ioutil.WriteFile(path.Join(subsysCgroupPath, "cpuset.mems"), []byte("0"), 0644); err != nil {
+			if err := ioutil.WriteFile(filepath.Join(subsysCgroupPath, "cpuset.mems"), []byte("0"), 0644); err != nil {
 				return fmt.Errorf("set cgroup cpuset.mems fail %v", err)
 			}
 			// write cpuset limit into cpuset.cpus
-			if err := ioutil.WriteFile(path.Join(subsysCgroupPath, "cpuset.cpus"), []byte(res.CpuSet), 0644); err != nil {
+			if err := ioutil.WriteFile(filepath.Join(subsysCgroupPath, "cpuset.cpus"), []byte(res.CpuSet), 0644); err != nil {
 				return fmt.Errorf("set cgroup cpuset.cpus fail %v", err)
 			}
 		}
@@ -43,7 +43,7 @@ func (s *CpusetSubSystem) Apply(cgroupPath string, pid int, res *ResourceConfig)
 	}
 	if subsysCgroupPath, err := GetCgroupPath(s.Name(), cgroupPath, false); err == nil {
 		// write process pid into tasks
-		if err := ioutil.WriteFile(path.Join(subsysCgroupPath, "tasks"), []byte(strconv.Itoa(pid)), 0644); err != nil {
+		if err := ioutil.WriteFile(filepath.Join(subsysCgroupPath, "tasks"), []byte(strconv.Itoa(pid)), 0644); err != nil {
 			return fmt.Errorf("set cgroup proc fail %v", err)
 		}
 		return nil

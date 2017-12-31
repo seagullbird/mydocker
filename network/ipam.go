@@ -6,11 +6,11 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"net"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 )
 
-var ipamDefaultAllocatorPath = path.Join(networkInfoDir, "ipam", "subnet.json")
+var ipamDefaultAllocatorPath = filepath.Join(networkRootDir, "ipam", "subnet.json")
 
 type IPAM struct {
 	subnetAllocatorPath string
@@ -34,7 +34,7 @@ func (ipam *IPAM) load() error {
 	if err != nil {
 		return err
 	}
-	subnetJson := make([]byte, 200)
+	subnetJson := make([]byte, 2000)
 	n, err := subnetConfigFile.Read(subnetJson)
 	if err != nil {
 		return err
@@ -49,12 +49,13 @@ func (ipam *IPAM) load() error {
 }
 
 func (ipam *IPAM) dump() error {
-	ipamConfigFileDir, _ := path.Split(ipam.subnetAllocatorPath)
+	ipamConfigFileDir, _ := filepath.Split(ipam.subnetAllocatorPath)
 	if _, err := os.Stat(ipamConfigFileDir); err != nil {
 		if os.IsNotExist(err) {
 			os.MkdirAll(ipamConfigFileDir, 0644)
+		} else {
+			return err
 		}
-		return err
 	}
 	subnetConfigFile, err := os.OpenFile(ipam.subnetAllocatorPath, os.O_TRUNC|os.O_WRONLY|os.O_CREATE, 0644)
 	defer subnetConfigFile.Close()
@@ -122,10 +123,20 @@ func (ipam *IPAM) Release(subnet *net.IPNet, ipaddr *net.IP) (err error) {
 	if err != nil {
 		log.Errorf("Error in loading allocation info: %v", err)
 	}
-	c := ip2int(*ipaddr) - ip2int(subnet.IP) - 1
+	c := ip2int(*ipaddr) - ip2int(subnet.IP)
 	ipalloc := []byte((*ipam.Subnets)[subnet.String()])
 	ipalloc[c] = '0'
 	(*ipam.Subnets)[subnet.String()] = string(ipalloc)
 	ipam.dump()
 	return
+}
+
+func (ipam *IPAM) Delete(subnet *net.IPNet) error {
+	ipam.Subnets = &map[string]string{}
+	err := ipam.load()
+	if err != nil {
+		log.Errorf("Error in loading allocation info: %v", err)
+	}
+	delete(*ipam.Subnets, subnet.String())
+	return ipam.dump()
 }

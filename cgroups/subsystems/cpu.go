@@ -5,7 +5,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 )
 
@@ -21,7 +21,7 @@ func (s *CpuSubSystem) Set(cgroupPath string, res *ResourceConfig) error {
 		if res.CpuShare != "" {
 			log.Infof("Setting cpu share limit: %v", res.CpuShare)
 			// write cpu share limit into cpu.shares
-			if err := ioutil.WriteFile(path.Join(subsysCgroupPath, "cpu.shares"), []byte(res.CpuShare), 0644); err != nil {
+			if err := ioutil.WriteFile(filepath.Join(subsysCgroupPath, "cpu.shares"), []byte(res.CpuShare), 0644); err != nil {
 				return fmt.Errorf("set cgroup cpu share fail %v", err)
 			}
 		}
@@ -37,7 +37,7 @@ func (s *CpuSubSystem) Apply(cgroupPath string, pid int, res *ResourceConfig) er
 	}
 	if subsysCgroupPath, err := GetCgroupPath(s.Name(), cgroupPath, false); err == nil {
 		// write process pid into tasks
-		if err := ioutil.WriteFile(path.Join(subsysCgroupPath, "tasks"), []byte(strconv.Itoa(pid)), 0644); err != nil {
+		if err := ioutil.WriteFile(filepath.Join(subsysCgroupPath, "tasks"), []byte(strconv.Itoa(pid)), 0644); err != nil {
 			return fmt.Errorf("set cgroup proc fail %v", err)
 		}
 		return nil

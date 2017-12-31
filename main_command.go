@@ -201,11 +201,11 @@ var networkCommand = cli.Command{
 			Flags: []cli.Flag{
 				cli.StringFlag{
 					Name:  "driver",
-					Usage: "network driver",
+					Usage: "Driver to manage the Network",
 				},
 				cli.StringFlag{
 					Name:  "subnet",
-					Usage: "subnet cidr",
+					Usage: "Subnet in CIDR format that represents a network segment",
 				},
 			},
 			Action: func(context *cli.Context) error {
