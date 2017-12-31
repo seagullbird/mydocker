@@ -17,6 +17,9 @@ import (
 	"text/tabwriter"
 )
 
+// if two containers cannot ping through,
+// https://superuser.com/questions/1211852/why-linux-bridge-doesnt-work/1211915
+
 type Network struct {
 	// Name of the network
 	Name string
@@ -154,9 +157,11 @@ func Connect(networkName string, cinfo *container.ContainerInfo) error {
 		Network:     network,
 		PortMapping: cinfo.PortMapping,
 	}
+	// deal with the end connecting the bridge
 	if err = drivers[network.Driver].Connect(network, ep); err != nil {
 		return err
 	}
+	// deal with the end connecting the container
 	if err = configEndpointIpAddressAndRoute(ep, cinfo); err != nil {
 		return err
 	}
@@ -235,13 +240,18 @@ func DeleteNetwork(networkName string) error {
 }
 
 func configEndpointIpAddressAndRoute(ep *Endpoint, cinfo *container.ContainerInfo) error {
+	// peerLink is the end of veth that is not connect to the bridge
+	// and is supposed to connect to the container
 	peerLink, err := netlink.LinkByName(ep.Device.PeerName)
 	if err != nil {
 		return fmt.Errorf("fail config endpoint: %v", err)
 	}
 
 	defer enterContainerNetns(&peerLink, cinfo)()
+	// code below is all executed inside the container netns
 
+	// ep.Network.IpRange is the network
+	// ep.IPAddress is the ip allocated for the container
 	interfaceIP := ep.Network.IpRange
 	interfaceIP.IP = ep.IPAddress
 
@@ -273,26 +283,29 @@ func configEndpointIpAddressAndRoute(ep *Endpoint, cinfo *container.ContainerInf
 }
 
 func enterContainerNetns(enLink *netlink.Link, cinfo *container.ContainerInfo) func() {
+	// find container net namespace
 	f, err := os.OpenFile(fmt.Sprintf("/proc/%s/ns/net", cinfo.Pid), os.O_RDONLY, 0)
 	if err != nil {
 		log.Errorf("error get container net namespace, %v", err)
 	}
-
+	// get file handler
 	nsFD := f.Fd()
+	// if not lock, goroutine might be scheduled to other threads
+	// cannot guarantee consist container network namespace
 	runtime.LockOSThread()
 
-	// 修改veth peer 另外一端移到容器的namespace中
+	// move the veth end into container netns
 	if err = netlink.LinkSetNsFd(*enLink, int(nsFD)); err != nil {
 		log.Errorf("error set link netns , %v", err)
 	}
 
-	// 获取当前的网络namespace
+	// get current net namespace
 	origns, err := netns.Get()
 	if err != nil {
 		log.Errorf("error get current netns, %v", err)
 	}
 
-	// 设置当前进程到新的网络namespace，并在函数执行完成之后再恢复到之前的namespace
+	// set current netns into container namespace，return to origin once finished
 	if err = netns.Set(netns.NsHandle(nsFD)); err != nil {
 		log.Errorf("error set netns, %v", err)
 	}

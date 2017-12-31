@@ -49,8 +49,10 @@ func (d *BridgeNetworkDriver) Connect(network *Network, endpoint *Endpoint) erro
 		return err
 	}
 
+	// Create a link for veth
 	la := netlink.NewLinkAttrs()
 	la.Name = endpoint.ID[:5]
+	// let one end of the veth mount onto the bridge
 	la.MasterIndex = br.Attrs().Index
 
 	endpoint.Device = netlink.Veth{

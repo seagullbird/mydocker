@@ -89,6 +89,7 @@ func int2ip(n uint32) net.IP {
 }
 
 func (ipam *IPAM) Allocate(subnet *net.IPNet) (ip net.IP, err error) {
+	_, cidr, _ := net.ParseCIDR(subnet.String())
 	ipam.Subnets = &map[string]string{}
 
 	err = ipam.load()
@@ -97,14 +98,14 @@ func (ipam *IPAM) Allocate(subnet *net.IPNet) (ip net.IP, err error) {
 	}
 	ones, bits := subnet.Mask.Size()
 
-	if _, exists := (*ipam.Subnets)[subnet.String()]; !exists {
-		(*ipam.Subnets)[subnet.String()] = strings.Repeat("0", 1<<uint8(bits-ones))
+	if _, exists := (*ipam.Subnets)[cidr.String()]; !exists {
+		(*ipam.Subnets)[cidr.String()] = strings.Repeat("0", 1<<uint8(bits-ones))
 	}
-	for c := range (*ipam.Subnets)[subnet.String()] {
-		if (*ipam.Subnets)[subnet.String()][c] == '0' {
-			ipalloc := []byte((*ipam.Subnets)[subnet.String()])
+	for c := range (*ipam.Subnets)[cidr.String()] {
+		if (*ipam.Subnets)[cidr.String()][c] == '0' {
+			ipalloc := []byte((*ipam.Subnets)[cidr.String()])
 			ipalloc[c] = '1'
-			(*ipam.Subnets)[subnet.String()] = string(ipalloc)
+			(*ipam.Subnets)[cidr.String()] = string(ipalloc)
 			ip = subnet.IP
 
 			ipint := ip2int(ip)

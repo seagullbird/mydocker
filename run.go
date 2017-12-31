@@ -7,6 +7,7 @@ import (
 	"github.com/seagullbird/mydocker/cgroups"
 	"github.com/seagullbird/mydocker/cgroups/subsystems"
 	"github.com/seagullbird/mydocker/container"
+	"github.com/seagullbird/mydocker/network"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -15,10 +16,10 @@ import (
 	"time"
 )
 
-func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, containerName, imageName string, envSlice []string, network string, portmapping []string) {
-	id := randStringBytes(10)
+func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, containerName, imageName string, envSlice []string, nw string, portmapping []string) {
+	containerID := randStringBytes(10)
 	if containerName == "" {
-		containerName = id
+		containerName = containerID
 	}
 	parent, writePipe := container.NewParentProcess(tty, volume, containerName, imageName, envSlice)
 	if parent == nil {
@@ -29,7 +30,7 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, co
 	if err := parent.Start(); err != nil {
 		log.Error(err)
 	}
-	containerName, err := recordContainerInfo(parent.Process.Pid, cmdArray, containerName, id, volume, imageName)
+	containerName, err := recordContainerInfo(parent.Process.Pid, cmdArray, containerName, containerID, volume, imageName)
 	if err != nil {
 		log.Errorf("Record container info error: %v", err)
 		return
@@ -41,6 +42,22 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, co
 	cgroupManager.Set(res)
 	// Add container process into each cgroup
 	cgroupManager.Apply(parent.Process.Pid, res)
+
+	if nw != "" {
+		// config container network
+		network.Init()
+		containerInfo := &container.ContainerInfo{
+			Id:          containerID,
+			Pid:         strconv.Itoa(parent.Process.Pid),
+			Name:        containerName,
+			PortMapping: portmapping,
+		}
+		if err := network.Connect(nw, containerInfo); err != nil {
+			log.Errorf("Error Connect Network %v", err)
+			return
+		}
+	}
+
 	// initialize the container
 	sendInitCommand(cmdArray, writePipe)
 	if tty {
