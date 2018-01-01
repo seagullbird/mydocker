@@ -13,5 +13,5 @@ func TestIPAM_Allocate(t *testing.T) {
 
 func TestIPAM_Release(t *testing.T) {
 	ip, ipnet, _ := net.ParseCIDR("192.168.0.1/24")
-	ipAllocator.Release(ipnet, &ip)
+	ipAllocator.Release(ipnet, ip)
 }

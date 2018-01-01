@@ -14,6 +14,18 @@
 			"Rev": "39908eb08fee7c10d842622a114a5c133fb0a3c6"
 		},
 		{
+			"ImportPath": "github.com/vishvananda/netlink",
+			"Rev": "ad19ca1a4c3354d3fdc67eac04b1e459038d9474"
+		},
+		{
+			"ImportPath": "github.com/vishvananda/netlink/nl",
+			"Rev": "ad19ca1a4c3354d3fdc67eac04b1e459038d9474"
+		},
+		{
+			"ImportPath": "github.com/vishvananda/netns",
+			"Rev": "be1fbeda19366dea804f00efff2dd73a1642fdcc"
+		},
+		{
 			"ImportPath": "golang.org/x/crypto/ssh/terminal",
 			"Rev": "94eea52f7b742c7cbe0b03b22f0c4c8631ece122"
 		},
