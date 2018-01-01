@@ -106,7 +106,7 @@ func (ipam *IPAM) Allocate(subnet *net.IPNet) (ip net.IP, err error) {
 			ipalloc := []byte((*ipam.Subnets)[cidr.String()])
 			ipalloc[c] = '1'
 			(*ipam.Subnets)[cidr.String()] = string(ipalloc)
-			ip = subnet.IP
+			ip = cidr.IP
 
 			ipint := ip2int(ip)
 			ip = int2ip(ipint + uint32(c) + 1)
@@ -118,16 +118,17 @@ func (ipam *IPAM) Allocate(subnet *net.IPNet) (ip net.IP, err error) {
 	return
 }
 
-func (ipam *IPAM) Release(subnet *net.IPNet, ipaddr *net.IP) (err error) {
+func (ipam *IPAM) Release(subnet *net.IPNet, ipaddr net.IP) (err error) {
+	_, cidr, _ := net.ParseCIDR(subnet.String())
 	ipam.Subnets = &map[string]string{}
 	err = ipam.load()
 	if err != nil {
 		log.Errorf("Error in loading allocation info: %v", err)
 	}
-	c := ip2int(*ipaddr) - ip2int(subnet.IP)
-	ipalloc := []byte((*ipam.Subnets)[subnet.String()])
+	c := ip2int(ipaddr) - ip2int(cidr.IP) - 1
+	ipalloc := []byte((*ipam.Subnets)[cidr.String()])
 	ipalloc[c] = '0'
-	(*ipam.Subnets)[subnet.String()] = string(ipalloc)
+	(*ipam.Subnets)[cidr.String()] = string(ipalloc)
 	ipam.dump()
 	return
 }

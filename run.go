@@ -30,11 +30,6 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, co
 	if err := parent.Start(); err != nil {
 		log.Error(err)
 	}
-	containerName, err := recordContainerInfo(parent.Process.Pid, cmdArray, containerName, containerID, volume, imageName)
-	if err != nil {
-		log.Errorf("Record container info error: %v", err)
-		return
-	}
 
 	cgroupManager := cgroups.NewCgroupManager("mydocker")
 	defer cgroupManager.Destroy()
@@ -43,25 +38,37 @@ func Run(tty bool, cmdArray []string, res *subsystems.ResourceConfig, volume, co
 	// Add container process into each cgroup
 	cgroupManager.Apply(parent.Process.Pid, res)
 
+	containerInfo := &container.ContainerInfo{
+		Id:   containerID,
+		Pid:  strconv.Itoa(parent.Process.Pid),
+		Name: containerName,
+	}
+
 	if nw != "" {
 		// config container network
 		network.Init()
-		containerInfo := &container.ContainerInfo{
-			Id:          containerID,
-			Pid:         strconv.Itoa(parent.Process.Pid),
-			Name:        containerName,
-			PortMapping: portmapping,
-		}
-		if err := network.Connect(nw, containerInfo); err != nil {
+		containerInfo.Network = nw
+		containerInfo.PortMapping = portmapping
+		ip, err := network.Connect(nw, containerInfo)
+		if err != nil {
 			log.Errorf("Error Connect Network %v", err)
 			return
 		}
+		containerInfo.IPAddress = ip
+	}
+
+	if err := recordContainerInfo(containerInfo, cmdArray, volume, imageName); err != nil {
+		log.Errorf("Record container info error: %v", err)
+		return
 	}
 
 	// initialize the container
 	sendInitCommand(cmdArray, writePipe)
 	if tty {
 		parent.Wait()
+		if nw != "" {
+			network.Disconnect(nw, containerInfo)
+		}
 		container.DeleteWorkSpace(volume, containerName, imageName)
 		deleteContainerInfo(containerName)
 	}
@@ -84,42 +91,39 @@ func randStringBytes(n int) string {
 	return string(b)
 }
 
-func recordContainerInfo(containerPID int, cmdArray []string, containerName, id, volume, imageName string) (string, error) {
+func recordContainerInfo(containerInfo *container.ContainerInfo, cmdArray []string, volume, imageName string) error {
 	createdTime := time.Now().Format("2006-01-01 15:00:00")
 	command := strings.Join(cmdArray, "")
-	containerInfo := &container.ContainerInfo{
-		Id:          id,
-		Pid:         strconv.Itoa(containerPID),
-		Command:     command,
-		CreatedTime: createdTime,
-		Status:      container.RUNNING,
-		Name:        containerName,
-		Volume:      volume,
-		Image:       imageName,
-	}
+
+	containerInfo.Command = command
+	containerInfo.CreatedTime = createdTime
+	containerInfo.Status = container.RUNNING
+	containerInfo.Volume = volume
+	containerInfo.Image = imageName
+
 	jsonBytes, err := json.Marshal(containerInfo)
 	if err != nil {
 		log.Errorf("Record container info error %v", err)
-		return "", err
+		return err
 	}
 	jsonStr := string(jsonBytes)
-	containerInfoDir := fmt.Sprintf(container.DefaultInfoLocation, containerName)
+	containerInfoDir := fmt.Sprintf(container.DefaultInfoLocation, containerInfo.Name)
 	if err := os.MkdirAll(containerInfoDir, 0622); err != nil {
 		log.Errorf("Mkdir error %s error: %v", containerInfoDir, err)
-		return "", err
+		return err
 	}
 	fileName := filepath.Join(containerInfoDir, container.ConfigName)
 	file, err := os.Create(fileName)
 	defer file.Close()
 	if err != nil {
 		log.Errorf("Create file %s error: %v", fileName, err)
-		return "", err
+		return err
 	}
 	if _, err := file.WriteString(jsonStr); err != nil {
 		log.Errorf("File write string error: %v", err)
-		return "", err
+		return err
 	}
-	return containerName, nil
+	return nil
 }
 
 func deleteContainerInfo(containerName string) {

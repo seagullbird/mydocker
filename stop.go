@@ -5,6 +5,7 @@ import (
 	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/seagullbird/mydocker/container"
+	"github.com/seagullbird/mydocker/network"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -47,6 +48,8 @@ func removeContainer(containerName string) {
 		log.Errorf("Cannot remove unstopped container")
 		return
 	}
+	network.Init()
+	network.Disconnect(containerInfo.Network, containerInfo)
 	containerInfoDir := fmt.Sprintf(container.DefaultInfoLocation, containerName)
 	if err := os.RemoveAll(containerInfoDir); err != nil {
 		log.Errorf("Remove container %s info error: %v", containerName, err)

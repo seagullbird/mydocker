@@ -139,34 +139,43 @@ func (nw *Network) remove(dumpPath string) error {
 	return os.Remove(filepath.Join(dumpPath, nw.Name))
 }
 
-func Connect(networkName string, cinfo *container.ContainerInfo) error {
-	network, ok := networks[networkName]
+func Connect(networkName string, cinfo *container.ContainerInfo) (net.IP, error) {
+	nw, ok := networks[networkName]
 	if !ok {
-		return fmt.Errorf("No such Network: %s", networkName)
+		return nil, fmt.Errorf("No such Network: %s", networkName)
 	}
 	// get ip address for the container
-	ip, err := ipAllocator.Allocate(network.IpRange)
+	ip, err := ipAllocator.Allocate(nw.IpRange)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
+	cinfo.IPAddress = ip
 	// create network endpoint
 	ep := &Endpoint{
 		ID:          fmt.Sprintf("%s-%s", cinfo.Id, networkName),
 		IPAddress:   ip,
-		Network:     network,
+		Network:     nw,
 		PortMapping: cinfo.PortMapping,
 	}
 	// deal with the end connecting the bridge
-	if err = drivers[network.Driver].Connect(network, ep); err != nil {
-		return err
+	if err = drivers[nw.Driver].Connect(nw, ep); err != nil {
+		return nil, err
 	}
 	// deal with the end connecting the container
 	if err = configEndpointIpAddressAndRoute(ep, cinfo); err != nil {
-		return err
+		return nil, err
 	}
 
-	return configPortMapping(ep, cinfo)
+	return ip, configPortMapping(ep, cinfo)
+}
+
+func Disconnect(networkName string, cinfo *container.ContainerInfo) error {
+	nw, ok := networks[networkName]
+	if !ok {
+		return fmt.Errorf("No such Network: %s", networkName)
+	}
+	// release ip address
+	return ipAllocator.Release(nw.IpRange, cinfo.IPAddress)
 }
 
 func Init() error {
