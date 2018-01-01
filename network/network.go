@@ -261,8 +261,10 @@ func configEndpointIpAddressAndRoute(ep *Endpoint, cinfo *container.ContainerInf
 
 	// ep.Network.IpRange is the network
 	// ep.IPAddress is the ip allocated for the container
-	interfaceIP := ep.Network.IpRange
-	interfaceIP.IP = ep.IPAddress
+	interfaceIP := &net.IPNet{
+		IP:   ep.IPAddress,
+		Mask: ep.Network.IpRange.Mask,
+	}
 
 	if err = setInterfaceIP(ep.Device.PeerName, interfaceIP); err != nil {
 		return fmt.Errorf("%v,%s", ep.Network, err)
