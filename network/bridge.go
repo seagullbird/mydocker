@@ -167,7 +167,6 @@ func setInterfaceIP(name string, ipnet *net.IPNet) error {
 func setupIPTables(bridgeName string, subnet string) error {
 	iptablesCmd := fmt.Sprintf("-t nat -A POSTROUTING -s %s ! -o %s -j MASQUERADE", subnet, bridgeName)
 	cmd := exec.Command("iptables", strings.Split(iptablesCmd, " ")...)
-	//err := cmd.Run()
 	output, err := cmd.Output()
 	if err != nil {
 		log.Errorf("iptables Output, %v", output)
