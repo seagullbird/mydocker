@@ -245,6 +245,10 @@ func DeleteNetwork(networkName string) error {
 		return fmt.Errorf("Error removing network driver: %v", err)
 	}
 
+	if err := delSNATRule(nw.Name, nw.IpRange.String()); err != nil {
+		return fmt.Errorf("Error removing SNAT rule: %v", err)
+	}
+
 	return nw.remove(networkInfoDir)
 }
 

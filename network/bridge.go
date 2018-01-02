@@ -90,7 +90,7 @@ func (d *BridgeNetworkDriver) initBridge(nw *Network) error {
 	}
 
 	// Setup iptables
-	if err := setupIPTables(bridgeName, nw.IpRange.String()); err != nil {
+	if err := addSNATRule(bridgeName, nw.IpRange.String()); err != nil {
 		return fmt.Errorf("Error setting iptables for %s: %v", bridgeName, err)
 	}
 
@@ -164,8 +164,19 @@ func setInterfaceIP(name string, ipnet *net.IPNet) error {
 	return netlink.AddrAdd(iface, addr)
 }
 
-func setupIPTables(bridgeName, subnet string) error {
+func addSNATRule(bridgeName, subnet string) error {
 	iptablesCmd := fmt.Sprintf("-t nat -A POSTROUTING -s %s ! -o %s -j MASQUERADE", subnet, bridgeName)
+	log.Infof("Executing: iptables %s", iptablesCmd)
+	cmd := exec.Command("iptables", strings.Split(iptablesCmd, " ")...)
+	output, err := cmd.Output()
+	if err != nil {
+		log.Errorf("iptables Output, %v", output)
+	}
+	return err
+}
+
+func delSNATRule(bridgeName, subnet string) error {
+	iptablesCmd := fmt.Sprintf("-t nat -D POSTROUTING -s %s ! -o %s -j MASQUERADE", subnet, bridgeName)
 	log.Infof("Executing: iptables %s", iptablesCmd)
 	cmd := exec.Command("iptables", strings.Split(iptablesCmd, " ")...)
 	output, err := cmd.Output()
