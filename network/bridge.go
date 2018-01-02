@@ -90,7 +90,7 @@ func (d *BridgeNetworkDriver) initBridge(nw *Network) error {
 	}
 
 	// Setup iptables
-	if err := setupIPTables(nw.IpRange.String()); err != nil {
+	if err := setupIPTables(bridgeName, nw.IpRange.String()); err != nil {
 		return fmt.Errorf("Error setting iptables for %s: %v", bridgeName, err)
 	}
 
@@ -164,8 +164,8 @@ func setInterfaceIP(name string, ipnet *net.IPNet) error {
 	return netlink.AddrAdd(iface, addr)
 }
 
-func setupIPTables(subnet string) error {
-	iptablesCmd := fmt.Sprintf("-t nat -A POSTROUTING -s %s -o ens33 -j MASQUERADE", subnet)
+func setupIPTables(bridgeName, subnet string) error {
+	iptablesCmd := fmt.Sprintf("-t nat -A POSTROUTING -s %s ! -o %s -j MASQUERADE", subnet, bridgeName)
 	log.Infof("Executing: iptables %s", iptablesCmd)
 	cmd := exec.Command("iptables", strings.Split(iptablesCmd, " ")...)
 	output, err := cmd.Output()
