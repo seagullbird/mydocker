@@ -175,7 +175,9 @@ func Disconnect(networkName string, cinfo *container.ContainerInfo) error {
 		return fmt.Errorf("No such Network: %s", networkName)
 	}
 	// release ip address
-	return ipAllocator.Release(nw.IpRange, cinfo.IPAddress)
+	ipAllocator.Release(nw.IpRange, cinfo.IPAddress)
+	// delete DNAT
+	return delPortMapping(cinfo)
 }
 
 func Init() error {
@@ -342,7 +344,25 @@ func configPortMapping(ep *Endpoint, cinfo *container.ContainerInfo) error {
 		iptablesCmd := fmt.Sprintf("-t nat -A PREROUTING -p tcp -m tcp --dport %s -j DNAT --to-destination %s:%s",
 			portMapping[0], ep.IPAddress.String(), portMapping[1])
 		cmd := exec.Command("iptables", strings.Split(iptablesCmd, " ")...)
-		//err := cmd.Run()
+		output, err := cmd.Output()
+		if err != nil {
+			log.Errorf("iptables Output, %v", output)
+			continue
+		}
+	}
+	return nil
+}
+
+func delPortMapping(cinfo *container.ContainerInfo) error {
+	for _, pm := range cinfo.PortMapping {
+		portMapping := strings.Split(pm, ":")
+		if len(portMapping) != 2 {
+			log.Errorf("port mapping format error, %v", pm)
+			continue
+		}
+		iptablesCmd := fmt.Sprintf("-t nat -D PREROUTING -p tcp -m tcp --dport %s -j DNAT --to-destination %s:%s",
+			portMapping[0], cinfo.IPAddress.String(), portMapping[1])
+		cmd := exec.Command("iptables", strings.Split(iptablesCmd, " ")...)
 		output, err := cmd.Output()
 		if err != nil {
 			log.Errorf("iptables Output, %v", output)
